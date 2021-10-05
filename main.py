@@ -1,5 +1,5 @@
-from modules.samu import Samu
-from modules.willy import Willy
+from samu import Samu
+from willy import Willy
 
 def main():
     return
