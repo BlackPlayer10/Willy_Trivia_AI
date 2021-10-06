@@ -1,3 +1,4 @@
+from numpy import savez_compressed
 from modules.globals import *
 from modules.recognition import get_query
 from modules.text_procesing import *
@@ -23,15 +24,26 @@ class Willy:
 
         self.search_titles = []
         self.search_snippets = []
+        self.doc_name = ""
+
         self.urls = []
         self.exlude_urls = []
-        self.doc_name = ""
+
+        self.preliminary_scores = [] # Lista de listas de los score de googl_search, doc_name y snipper
+        self.final_answ_score = [] # Scores de respuestas
+
+        # probably_answers (GLOBAL) lista con las respuestas en orden
 
     def reset(self):
         self.search_titles = []
         self.search_snippets = []
+
         self.urls = []
         self.exlude_urls = []
+
+        self.preliminary_scores = []
+        self.final_answ_score = []
+
 
     def google_search(self):
 
@@ -50,6 +62,34 @@ class Willy:
         if len(self.urls) == 0: return -1
         return 1
     
+    def pre_score(self, code):
+        
+        if code == "snip": token = token_string(" ".join(self.search_snippets))
+        elif code == "goog": token = token_string(" ".join(self.search_titles))
+        elif code == "docn": token = token_string(self.doc_name)
+
+        score = [0,0,0]
+        for word in token:
+            for i in range(len(self.token_answers)):
+                if word in self.token_answers[i]: score[i] += 1
+        
+        self.preliminary_scores.append(score[:])
+        return True
+
+    def edit_possible_answers(self):
+        global probably_answers
+        general_score = [0,0,0]
+        for s_list in self.preliminary_scores:
+            for i in range(len(s_list)):
+                general_score[i] += s_list[i]
+        general_score = [[general_score[i], chr(i+65)] for i in range(3)]
+        general_score.sort()
+        probably_answers = [general_score[i][1] for i in range(3)]
+        return
+
+    def final_answer(self):
+        return
+
     def run(self, q_lines):
 
         # READ AND PROCESS QUESTION & ANSWERS
@@ -66,18 +106,21 @@ class Willy:
         
         # GOOGLE SEARCH
         var = self.google_search()
-        if var == 0: # Nothing to do :(
+        if var == 0:
             print("No Google Results D:")
             return 
         
-        # Check answer in search, snippet, doc name and star final answer
+        # Check answer in search, snippet, doc name and start final answer
         
+        codes = ["snip", "goog", "docn"]
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            answ_search = executor.submit()
-            answ_snippet = executor.submit()
-            answ_doc_name = executor.submit()
-            answ_tf_idf = executor.submit()
- 
+            scores1 = [executor.submit(c) for c in codes]
+            f_answ = executor.submit(self.final_answer())
+
+            for i in range(3): scores1[i].result()
+            self.edit_possible_answers()
+
+
 
         return
     
