@@ -33,7 +33,6 @@ class Willy:
         self.urls = []
         self.exlude_urls = []
 
-
     def google_search(self):
 
         results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=self.brute_question,cx=self.cse_id,num=5).execute()
