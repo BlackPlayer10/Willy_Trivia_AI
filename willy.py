@@ -1,9 +1,11 @@
-from numpy import savez_compressed
+from yaml import parse
 from modules.globals import *
 from modules.recognition import get_query
 from modules.text_procesing import *
 from googleapiclient.discovery import build 
-from bs4.element import ResultSet
+#from bs4.element import ResultSet
+from bs4 import BeautifulSoup
+import requests
 import concurrent.futures
 
 class Willy:
@@ -21,6 +23,7 @@ class Willy:
         self.token_question = None
         self.token_answers = None
         self.answer_key_words = None
+        self.data = []
 
         self.search_titles = []
         self.search_snippets = []
@@ -35,15 +38,39 @@ class Willy:
         # probably_answers (GLOBAL) lista con las respuestas en orden
 
     def reset(self):
+        global probably_answers 
+        probably_answers = []
+
         self.search_titles = []
         self.search_snippets = []
 
         self.urls = []
-        self.exlude_urls = []
+        self.exclude_urls = []
 
         self.preliminary_scores = []
         self.final_answ_score = []
 
+    def parser_aux(self, tag):
+        token = token_string(tag.get_text(strip=True, separator=" "))
+        for word in self.answer_key_words:
+            if word in token:
+                self.data.append(token)
+                return
+
+    def parse(self):
+        i = 1
+        for url in self.urls + self.exclude_urls:
+            i+=1
+            print("Parsing url Nro", i)
+            self.data = []
+            soup = BeautifulSoup(requests.get(url).text, "html.parser")
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                found = [executor.submit(soup.find_all, tag) for tag in ["li","p"]]
+                for exe in found: 
+                    for tag in exe.result(): self.parser_aux(tag)
+            if len(self.data) > 0: return 1
+        return 0
+        
 
     def google_search(self):
 
@@ -52,17 +79,17 @@ class Willy:
 
         for r in results:
             self.search_titles.append(r['title'])
-            self.search_titles.append(r['snippet'])
+            self.search_snippets.append(r['snippet'])
             url_low = r['link'].lower()
             if url_low.find("youtube") == -1 and url_low.find("anexo") == -1 and url_low.find("archivo") == -1 and url_low.find("image") == -1:
                 self.urls.append(r['link'])
                 if len(self.urls) == 1: self.doc_name = r['title']
-            else: self.exlude_urls.append(r['link'])
+            else: self.exclude_urls.append(r['link'])
 
         if len(self.urls) == 0: return -1
         return 1
     
-    def pre_score(self, code):
+    def pre_score(self, code): # Se busca respuesta en titulo, en busqueda y en snippets
         
         if code == "snip": token = token_string(" ".join(self.search_snippets))
         elif code == "goog": token = token_string(" ".join(self.search_titles))
@@ -76,7 +103,7 @@ class Willy:
         self.preliminary_scores.append(score[:])
         return True
 
-    def edit_possible_answers(self):
+    def edit_possible_answers(self): # Se ejecuta despues de haber buscado respuesta en titulo, busqueda y snip
         global probably_answers
         general_score = [0,0,0]
         for s_list in self.preliminary_scores:
@@ -85,6 +112,12 @@ class Willy:
         general_score = [[general_score[i], chr(i+65)] for i in range(3)]
         general_score.sort()
         probably_answers = [general_score[i][1] for i in range(3)]
+        # NO IN QUESTION (La respuesta es lo que menos aparece)
+        if self.no_in_question: probably_answers = probably_answers[::-1]  
+        return
+
+    def no_final_answer(self):
+
         return
 
     def final_answer(self):
@@ -97,7 +130,7 @@ class Willy:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             nq = executor.submit(search_no_question, self.brute_question)
             tq = executor.submit(token_string, self.brute_question)
-            ta = [executor.submit(token_string, a) for a in self.token_answers]
+            ta = [executor.submit(token_string, a) for a in self.brute_answers]
 
             self.no_in_question = nq.result()
             self.token_question = tq.result()
@@ -111,16 +144,19 @@ class Willy:
             return 
         
         # Check answer in search, snippet, doc name and start final answer
-        
-        codes = ["snip", "goog", "docn"]
+ 
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            scores1 = [executor.submit(c) for c in codes]
-            f_answ = executor.submit(self.final_answer())
+            scores1 = [executor.submit(self.pre_score, c) for c in ["snip", "goog", "docn"]]
+            parser = executor.submit(self.parse)
+            if parse.result(): f_answ = executor.submit(self.final_answer) if not self.no_in_question else executor.submit(self.no_final_answer())
+            else: 
+                print('NO ANSWERS ANYWHERE :(')
+                return
 
             for i in range(3): scores1[i].result()
             self.edit_possible_answers()
 
-
+            
 
         return
     

@@ -1,6 +1,6 @@
 from nltk import corpus, word_tokenize
 
-trash_terms = ".!«•»;',<>()/\\[]¿?%“”*+@#$^&*_={|}\"~`\n"
+trash_terms = "-.!«•»;',<>()/\\[]¿?%“”*+@#$^&*_={|}\"~`\n"
 trash_words = corpus.stopwords.words('spanish') + ["-"]
 
 def replace_sign(letter):
@@ -27,6 +27,7 @@ def token_string(sentence): # By reference
     new_str = ""
     for letter in sentence.lower():
         if letter not in trash_terms: new_str += replace_sign(letter)
+        if letter == "-": new_str += " " # Arregla bug palabras compuestas ejemp: '1937-septiembre'
     new_str = word_tokenize(new_str)
     last_str = [word for word in new_str if word not in trash_words]
     return last_str
