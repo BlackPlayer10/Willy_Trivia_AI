@@ -1,7 +1,26 @@
+from ctypes import windll
 from samu import Samu
 from willy import Willy
+import concurrent.futures
 
 def main():
-    return
 
+    print("\n\t\t *** WILLY 1.0 *** \n")
+    WILLY = Willy()
+    SAMU = Samu()
+
+    while True:
+        
+        x = input("Input Question lines (ENTER = 1): ")
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            W = executor.submit(WILLY.run, 1 if not x else int(x))
+            S = executor.submit(SAMU.run_check)
+
+            W.result()
+            S.result()
+
+        WILLY.reset()
+        SAMU.reset()
+        
 main()
