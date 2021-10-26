@@ -36,7 +36,7 @@ class Willy:
         self.doc_name = ""
 
         self.urls = []
-        self.exlude_urls = []
+        self.exclude_urls = []
 
         self.preliminary_scores = [] # Lista de listas de los score de googl_search, doc_name y snipper
         self.sentence_tf_idf_score = []
@@ -92,7 +92,7 @@ class Willy:
         results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=self.brute_question,cx=self.cse_id,num=5).execute()
         if not results.get('items'): return 0 
 
-        for r in results:
+        for r in results['items']:
             self.search_titles.append(r['title'])
             self.search_snippets.append(r['snippet'])
             url_low = r['link'].lower()
