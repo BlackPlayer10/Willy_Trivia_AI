@@ -28,7 +28,7 @@ class Willy:
         self.brute_answers = None
         self.token_question = None
         self.token_answers = None
-        self.answer_key_words = None
+        self.answer_key_words = []
         self.data = []
 
         self.search_titles = []
@@ -51,6 +51,8 @@ class Willy:
         global probably_final_answers
         probably_answers = []
         probably_final_answers = []
+
+        self.answer_key_words = []
 
         self.search_titles = []
         self.search_snippets = []
@@ -200,7 +202,7 @@ class Willy:
     def run(self, q_lines):
 
         # READ AND PROCESS QUESTION & ANSWERS
-        self.brute_question , self.brute_answers = get_query(q_lines)
+        self.brute_question, self.brute_answers = get_query(q_lines)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             nq = executor.submit(search_no_question, self.brute_question)
             tq = executor.submit(token_string, self.brute_question)
@@ -209,10 +211,8 @@ class Willy:
             self.no_in_question = nq.result()
             self.token_question = tq.result()
             self.token_answers = [exe.result() for exe in ta]
-            print("A")
-            self.answer_key_words = [(word for word in answ) for answ in self.token_answers]
+            for answ in self.token_answers: self.answer_key_words += [word for word in answ if word not in self.answer_key_words]
         
-        print("GOOGLE")
         # GOOGLE SEARCH
         var = self.google_search()
         if var == 0:

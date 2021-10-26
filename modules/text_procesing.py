@@ -2,6 +2,7 @@ from nltk import corpus, word_tokenize
 
 trash_terms = "-.!«•»;',<>()/\\[]¿?%“”*+@#$^&*_={|}\"~`\n"
 trash_words = corpus.stopwords.words('spanish') + ["-"]
+del trash_words[163] # estados
 
 def replace_sign(letter):
     if letter == "á": return "a"
@@ -20,6 +21,7 @@ def search_no_question(sentence): # By reference
             while sentence[i] not in "'\"“”": i+=1
             i+=1  
         new_str+=sentence[i]
+        i+=1
     if "no" in word_tokenize(new_str): return True
     return False
 

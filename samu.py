@@ -1,5 +1,6 @@
 from requests.api import options
 from modules.globals import *
+from time import sleep
 
 class Samu:
     def __init__(self):
@@ -60,7 +61,9 @@ class Samu:
 
     def run_check(self):
         while True:
+            sleep(0.3)
             if self.check_probably_answers() and self.try_probably_answers: self.print_probably_answer()
             if self.check_probably_final_answers() and self.try_probably_final_answers: self.print_probably_final_answer()
+            
 
 
