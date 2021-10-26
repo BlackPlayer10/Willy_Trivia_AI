@@ -1,6 +1,6 @@
 from nltk import corpus, word_tokenize
 
-trash_terms = "-.!«•»;',<>()/\\[]¿?%“”*+@#$^&*_={|}\"~`\n"
+trash_terms = "-.!«•»;↑',<>()/\\[]¿?%“”*+@#$^&*_={|}\"~`\n"
 trash_words = corpus.stopwords.words('spanish') + ["-"]
 del trash_words[163] # estados
 

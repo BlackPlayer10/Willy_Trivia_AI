@@ -1,5 +1,3 @@
-from pickle import NONE
-from PIL.Image import radial_gradient
 from modules.globals import *
 from modules.recognition import get_query
 from modules.text_procesing import *
@@ -73,8 +71,7 @@ class Willy:
 
     def parse(self):
         print("PARSE")
-        i = 1
-        for url in self.urls + self.exclude_urls:
+        for i, url in zip(range(1,6), self.urls + self.exclude_urls):
             i+=1
             print("Parsing url Nro", i)
             self.data = []
@@ -133,6 +130,7 @@ class Willy:
         else:
             if general_score[0][0] == general_score[1][0] == general_score[2][0]: return
             for i in range(3): probably_answers.append(general_score[i][1])
+        print("PROBABLY PRELIMINARY ANSWERS SCORE:", general_score)
         return
     
     def tf_idf_score(self):

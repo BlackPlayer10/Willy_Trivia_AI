@@ -35,7 +35,7 @@ class Samu:
         
     # SOLO PARA PRUEBA
     def print_probably_final_answer(self):
-        print("FINAL ANSWERS: ")
+        print("FINAL ANSWERS: ", end="")
         for i in range(len(probably_answers)):
             print("-->", probably_final_answers[i], "<--\t",end="")
         print("\n")
