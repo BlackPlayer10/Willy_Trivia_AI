@@ -70,8 +70,7 @@ class Willy:
                 return
 
     def parse(self):
-        print("PARSE")
-        for i, url in zip(range(1,6), self.urls + self.exclude_urls):
+        for i, url in zip(range(0,5), self.urls + self.exclude_urls):
             i+=1
             print("Parsing url Nro", i)
             self.data = []
@@ -86,7 +85,7 @@ class Willy:
 
     def google_search(self):
 
-        results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=self.brute_question,cx=self.cse_id,num=5).execute()
+        results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=self.brute_question,cx=self.cse_id,lr="lang_es",num=5).execute()
         if not results.get('items'): return 0 
 
         for r in results['items']:
@@ -130,21 +129,21 @@ class Willy:
         else:
             if general_score[0][0] == general_score[1][0] == general_score[2][0]: return
             for i in range(3): probably_answers.append(general_score[i][1])
-        print("PROBABLY PRELIMINARY ANSWERS SCORE:", general_score)
+        #print("PROBABLY PRELIMINARY ANSWERS SCORE:", general_score)
         return
     
     def tf_idf_score(self):
         self.sentence_tf_idf_score = [0 for i in range(len(self.data))] # Score of all Sentences
         for word in self.token_question: # Calc idf for each word in question
             # Calc Idf for every word in question
-            div = self.sentence_with_word(word)
+            div = 0
+            for sentence in self.data:
+                if word in sentence: div += 1
             if div == 0: continue
-            idf = log(len(self.data) / self.sentence_with_word(word))
 
-            # Calc Tf for every paragraph with word
-            for i in range(len(self.data)): # Calc Tf and mult with idf
-                self.sentence_tf_idf_score[i] += (self.cont_times_word_in_sen(word, self.data[i]) / len(self.data[i])) * idf
-
+            # Calc Tf for every paragraph with word and multiply with idf
+            for i in range(len(self.data)): self.sentence_tf_idf_score[i] += (self.data[i].count(word) / len(self.data[i])) * log(len(self.data) / div)
+                
         # Calc sentence query_density
         for i in range(len(self.data)):
             cont = 0
@@ -157,7 +156,7 @@ class Willy:
             answer_score = [0,0,0]
             for j in range(3):
                 for word in self.token_answers[j]:
-                    if self.find_words_in_sentence([word], self.data[i]): answer_score[j] += 1
+                    if word in self.data[i]: answer_score[j] += 1
                 answer_score[j] /= len(self.token_answers[j]) 
             self.sentence_tf_idf_score[i] *= max(max(answer_score[0], answer_score[1]), answer_score[2])
         return
@@ -184,10 +183,10 @@ class Willy:
             return
 
         self.tf_idf_score()
-        mini = 0
+        maxi = 0
         for i in range(len(self.sentence_tf_idf_score)):
-            if self.sentence_tf_idf_score[i] < self.sentence_tf_idf_score[mini]: mini = i
-        self.ident_answer_from_sentenence(self.data[mini])
+            if self.sentence_tf_idf_score[i] > self.sentence_tf_idf_score[maxi]: maxi = i
+        self.ident_answer_from_sentenence(self.data[maxi])
         
 
     def final_answer(self):
@@ -195,6 +194,7 @@ class Willy:
         maxi = 0
         for i in range(len(self.sentence_tf_idf_score)):
             if self.sentence_tf_idf_score[i] > self.sentence_tf_idf_score[maxi]: maxi = i
+        #print(self.data[maxi])
         self.ident_answer_from_sentenence(self.data[maxi])
 
     def run(self, q_lines):
@@ -210,13 +210,19 @@ class Willy:
             self.token_question = tq.result()
             self.token_answers = [exe.result() for exe in ta]
             for answ in self.token_answers: self.answer_key_words += [word for word in answ if word not in self.answer_key_words]
-        
+            #print(self.token_question)
+            #print(self.token_answers)
+
         # GOOGLE SEARCH
         var = self.google_search()
         if var == 0:
             print("No Google Results D:")
             return 
-        
+        #print("DOCNAME:",self.doc_name)
+        #print("TITULOS:",self.search_titles)
+        #print("SNIPPETS:",self.search_snippets)
+
+
         # Check answer in search, snippet, doc name and start final answer
         with concurrent.futures.ThreadPoolExecutor() as executor:
             parser = executor.submit(self.parse)
@@ -224,38 +230,21 @@ class Willy:
             for i in range(3): scores1[i].result()
             panswers_exe = executor.submit(self.edit_possible_answers)
 
-            if parser.result(): f_answ = executor.submit(self.final_answer) if not self.no_in_question else executor.submit(self.no_final_answer())
+            if parser.result(): f_answ = executor.submit(self.final_answer) if not self.no_in_question else executor.submit(self.no_final_answer)
             else: 
                 print('NO ANSWERS ANYWHERE :(')
                 panswers_exe.result()
                 return
             panswers_exe.result()
             f_answ.result()
+        return
 
-
-    # FUNCIONES PARA CALCULO DE TF-IDF
-    def sentence_with_word(self, query): # Cuantos oraciones en Data contienen una determinada palabra
-        cont = 0
-        for sentence in self.data:
-            if query in sentence: cont += 1
-        return cont
-
-    def cont_times_word_in_sen(key_word, sentence): # Cuantas Veces aparece una palabra en una oracion
-        cont = 0
-        for word in sentence:
-            if word == key_word: cont += 1
-        return cont
-
-    def find_words_in_sentence(key_words, sentence): # Existen las keywords en una oracion?
-        for k_word in key_words:
-            if k_word in sentence: return True
-        return False
-    
     # FUNCIONES PARA IDENTIFICACION DE RESPUESTA
     def edit_possible_final_answers(self):
         global probably_final_answers
         aux = [[self.final_answ_score[i], chr(i+65)] for i in range(len(self.final_answ_score))]
         aux.sort(reverse= (not self.no_in_question))
+        #print("SCORE PROBABLY FINAL ANSWER:", aux)
         probably_final_answers = [aux[i][1] for i in range(3)]
         self.FINAL_ANSWER = probably_final_answers[0]
 
@@ -263,8 +252,7 @@ class Willy:
         # ANSWER DENSITY
         self.final_answ_score = [0,0,0]
         for i in range(3):
-            for word in self.token_answers[i]:
-                if word in sentence: self.final_answ_score[i] += 1
+            for word in self.token_answers[i]: self.final_answ_score[i] += sentence.count(word)
             self.final_answ_score[i] /= len(self.token_answers[i])
         self.edit_possible_final_answers()
         
@@ -287,8 +275,10 @@ class Willy:
                 for a_index in answer_index: count += abs(q_index - a_index)
                 count /= len(answer_index)
                 answers_score2[i] += count
+            if len(question_words_index) == 0: continue
+            answers_score2[i] /= len(question_words_index)
 
-        self.final_answ_score = [self.final_answ_score[i] + answers_score2[i] for i in range(3)]
+        self.final_answ_score = [self.final_answ_score[i] * answers_score2[i] for i in range(3)]
         self.edit_possible_final_answers()
 
         # MOST REPEATED ANSWER IN ALL DATA
@@ -302,3 +292,16 @@ class Willy:
         self.final_answ_score = [self.final_answ_score[i] + answers_score2[i] for i in range(3)]
         self.edit_possible_final_answers()
 
+
+    # FUNCIONES SOLO PARA USAR A WILLY SIN SAMU E IMPRIMIR RESPUESTAS
+    def print_prefinal():
+        global probably_answers
+        print("\nPRE ANSWERS: ",end="")
+        if len(probably_answers) == 0: return
+        print("---> ")
+        for i in range(len(probably_answers)):
+            print(probably_answers[i],end="")
+            if i != len(probably_answers)-1: print(" / ")
+        print(" <---")
+    
+    

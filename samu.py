@@ -1,4 +1,4 @@
-from requests.api import options
+import time
 from modules.globals import *
 from time import sleep
 
@@ -26,17 +26,16 @@ class Samu:
 
     # SOLO PARA PRUEBA
     def print_probably_answer(self):
-        print("PRE ANSWERS: ")
-        for i in range(len(probably_answers)):
-            print("-->", probably_answers[i], "<--\t",end="")
-        print("\n")
+        print("PRE ANSWERS: ", end="")
+        if (len(probably_answers) <=2 and len(probably_answers) > 0):
+            for i in range(len(probably_answers)): print("-->", probably_answers[i], "<--\t",end="")
+            print("\n")
         self.try_probably_answers = False
-        
         
     # SOLO PARA PRUEBA
     def print_probably_final_answer(self):
         print("FINAL ANSWERS: ", end="")
-        for i in range(len(probably_answers)):
+        for i in range(len(probably_final_answers)):
             print("-->", probably_final_answers[i], "<--\t",end="")
         print("\n")
         self.try_probably_final_answers = False
@@ -48,22 +47,20 @@ class Samu:
     def check_probably_answers(self):
         global probably_answers
         if len(probably_answers) == 0: return False
-        # FIX DISCART OPTIONS BUG
-        #self.discart_option = probably_answers
         return True
 
     def check_probably_final_answers(self):
         global probably_final_answers
         if len(probably_final_answers) == 0: return False
-        # FIX DISCART OPTIONS BUG
-        #self.discart_option = probably_answers
         return True
 
     def run_check(self):
+        start = time.time()
         while True:
-            sleep(0.3)
+            time.sleep(0.1)
             if self.check_probably_answers() and self.try_probably_answers: self.print_probably_answer()
             if self.check_probably_final_answers() and self.try_probably_final_answers: self.print_probably_final_answer()
+            if time.time() - start > 12: break
             
 
 
