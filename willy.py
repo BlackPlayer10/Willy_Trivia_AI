@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import requests
 import concurrent.futures
 from math import log
+import time
 
 class Willy:
     def __init__(self):
@@ -162,6 +163,7 @@ class Willy:
         return
             
     def no_final_answer(self):
+        global probably_final_answers
         valid_answers = [False,False,False]
         cont_True = 0
 
@@ -176,10 +178,8 @@ class Willy:
             if cont_True == 3: break
                 
         if cont_True == 1 or cont_True == 2:
-            global probably_final_answers
             for i in range(3):
-                if not valid_answers[i]: 
-                    probably_final_answers.append(chr(i+65))
+                if not valid_answers[i]: probably_final_answers.append(chr(i+65))
             return
 
         self.tf_idf_score()
@@ -200,6 +200,7 @@ class Willy:
     def run(self, q_lines):
 
         # READ AND PROCESS QUESTION & ANSWERS
+        s = time.time()
         self.brute_question, self.brute_answers = get_query(q_lines)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             nq = executor.submit(search_no_question, self.brute_question)
@@ -229,6 +230,7 @@ class Willy:
             scores1 = [executor.submit(self.pre_score, c) for c in ["snip", "goog", "docn"]]
             for i in range(3): scores1[i].result()
             panswers_exe = executor.submit(self.edit_possible_answers)
+            #self.print_prefinal() # FUNCION DE IMPRESION SIN SAMU
 
             if parser.result(): f_answ = executor.submit(self.final_answer) if not self.no_in_question else executor.submit(self.no_final_answer)
             else: 
@@ -237,6 +239,8 @@ class Willy:
                 return
             panswers_exe.result()
             f_answ.result()
+        #self.print_final() # FUNCION DE IMPRESION SIN SAMU
+        print("FINISH:", round(time.time()-s, 3),end="\n\n")
         return
 
     # FUNCIONES PARA IDENTIFICACION DE RESPUESTA
@@ -244,9 +248,10 @@ class Willy:
         global probably_final_answers
         aux = [[self.final_answ_score[i], chr(i+65)] for i in range(len(self.final_answ_score))]
         aux.sort(reverse= (not self.no_in_question))
-        #print("SCORE PROBABLY FINAL ANSWER:", aux)
-        probably_final_answers = [aux[i][1] for i in range(3)]
+        del probably_final_answers[:]
+        for i in range(3): probably_final_answers.append(aux[i][1])
         self.FINAL_ANSWER = probably_final_answers[0]
+        #print("ID WILLY: ", id(probably_final_answers))
 
     def ident_answer_from_sentenence(self, sentence):
         # ANSWER DENSITY
@@ -294,14 +299,18 @@ class Willy:
 
 
     # FUNCIONES SOLO PARA USAR A WILLY SIN SAMU E IMPRIMIR RESPUESTAS
-    def print_prefinal():
-        global probably_answers
-        print("\nPRE ANSWERS: ",end="")
+    def print_prefinal(self):
         if len(probably_answers) == 0: return
-        print("---> ")
+        print("\nPRE ANSWERS: ",end="")
+        print("\t---> ",end="")
         for i in range(len(probably_answers)):
             print(probably_answers[i],end="")
-            if i != len(probably_answers)-1: print(" / ")
+            if i != len(probably_answers)-1: print(" / ",end="")
         print(" <---")
     
-    
+    def print_final(self):
+        global probably_final_answers
+        print("\nFINAL ANSWER: \t--->", probably_final_answers[0], "<---")
+        print("\nSECOND OPINION:")
+        print(probably_final_answers[1],"-", probably_final_answers[2])
+        print()

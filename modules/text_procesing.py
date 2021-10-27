@@ -18,9 +18,9 @@ def search_no_question(sentence): # By reference
     while i < size:
         if sentence[i] in "'\"“”": 
             i+=1
-            while sentence[i] not in "'\"“”": i+=1
+            while i < size and sentence[i] not in "'\"“”": i+=1
             i+=1  
-        new_str+=sentence[i]
+        if i < size: new_str+=sentence[i] # Es posible que se cierre comilla y se abra justo otra?
         i+=1
     if "no" in word_tokenize(new_str): return True
     return False

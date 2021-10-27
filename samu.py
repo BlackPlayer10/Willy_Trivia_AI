@@ -1,6 +1,5 @@
 import time
 from modules.globals import *
-from time import sleep
 
 class Samu:
     def __init__(self):
@@ -26,18 +25,18 @@ class Samu:
 
     # SOLO PARA PRUEBA
     def print_probably_answer(self):
-        print("PRE ANSWERS: ", end="")
+        print("SAMU PRE ANSWERS: ", end="")
         if (len(probably_answers) <=2 and len(probably_answers) > 0):
             for i in range(len(probably_answers)): print("-->", probably_answers[i], "<--\t",end="")
-            print("\n")
+        print("\n")
         self.try_probably_answers = False
         
     # SOLO PARA PRUEBA
     def print_probably_final_answer(self):
-        print("FINAL ANSWERS: ", end="")
-        for i in range(len(probably_final_answers)):
-            print("-->", probably_final_answers[i], "<--\t",end="")
-        print("\n")
+        print("\nSAMU FINAL ANSWER: \t--->", probably_final_answers[0], "<---")
+        print("\nSECOND OPINION:")
+        print(probably_final_answers[1],"-", probably_final_answers[2])
+        print()
         self.try_probably_final_answers = False
 
 
@@ -46,11 +45,13 @@ class Samu:
 
     def check_probably_answers(self):
         global probably_answers
+        #print(len(probably_answers))
         if len(probably_answers) == 0: return False
         return True
 
     def check_probably_final_answers(self):
         global probably_final_answers
+        #print("ID SAMU: ", id(probably_final_answers))
         if len(probably_final_answers) == 0: return False
         return True
 
@@ -60,7 +61,7 @@ class Samu:
             time.sleep(0.1)
             if self.check_probably_answers() and self.try_probably_answers: self.print_probably_answer()
             if self.check_probably_final_answers() and self.try_probably_final_answers: self.print_probably_final_answer()
-            if time.time() - start > 12: break
+            if time.time() - start > 10: break
             
 
 
