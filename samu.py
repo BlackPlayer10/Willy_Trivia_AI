@@ -23,23 +23,6 @@ class Samu:
         self.options_tried.append(self.discart_options[0])
         del self.discart_options[0]
 
-    # SOLO PARA PRUEBA
-    def print_probably_answer(self):
-        print("SAMU PRE ANSWERS: ", end="")
-        if (len(probably_answers) <=2 and len(probably_answers) > 0):
-            for i in range(len(probably_answers)): print("-->", probably_answers[i], "<--\t",end="")
-        print("\n")
-        self.try_probably_answers = False
-        
-    # SOLO PARA PRUEBA
-    def print_probably_final_answer(self):
-        print("\nSAMU FINAL ANSWER: \t--->", probably_final_answers[0], "<---")
-        print("\nSECOND OPINION:")
-        print(probably_final_answers[1],"-", probably_final_answers[2])
-        print()
-        self.try_probably_final_answers = False
-
-
     def discart_everything(self):
         return
 
