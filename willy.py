@@ -8,11 +8,10 @@ import concurrent.futures
 from math import log
 from art import tprint
 import time
-import os
 
 class Willy:
     def __init__(self):
-
+        # Yeah you need to enter your keys in a txt and type the path her
         keys = open(r"C:\Users\Usuario\Documents\Proyects 2021\Willy Proyect\modules\keys.txt", "r")
         self.api_key = keys.readline()[:-1]
         self.cse_id = keys.readline()
