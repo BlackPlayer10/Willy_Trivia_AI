@@ -48,8 +48,8 @@ class Willy:
     def reset(self):
         global probably_answers 
         global probably_final_answers
-        probably_answers = []
-        probably_final_answers = []
+        del probably_answers[:]
+        del probably_final_answers[:]
 
         self.answer_key_words = []
 
@@ -75,18 +75,20 @@ class Willy:
             i+=1
             print("Parsing url Nro", i)
             self.data = []
-            soup = BeautifulSoup(requests.get(url).text, "html.parser")
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                found = [executor.submit(soup.find_all, tag) for tag in ["li","p"]]
-                for exe in found: 
-                    for tag in exe.result(): self.parser_aux(tag)
-            if len(self.data) > 0: return 1
+            try: 
+                soup = BeautifulSoup(requests.get(url).text, "html.parser")
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    found = [executor.submit(soup.find_all, tag) for tag in ["li","p"]]
+                    for exe in found: 
+                        for tag in exe.result(): self.parser_aux(tag)
+                if len(self.data) > 0: return 1
+            except: pass
         return 0
         
 
     def google_search(self):
-
-        results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=self.brute_question,cx=self.cse_id,lr="lang_es",num=5).execute()
+        query = procces_google_query(self.brute_question)
+        results = build("customsearch","v1",developerKey=self.api_key).cse().list(q=query,cx=self.cse_id,num=5).execute()
         if not results.get('items'): return 0 
 
         for r in results['items']:
@@ -229,17 +231,15 @@ class Willy:
             parser = executor.submit(self.parse)
             scores1 = [executor.submit(self.pre_score, c) for c in ["snip", "goog", "docn"]]
             for i in range(3): scores1[i].result()
-            panswers_exe = executor.submit(self.edit_possible_answers)
-            #self.print_prefinal() # FUNCION DE IMPRESION SIN SAMU
+            self.edit_possible_answers()
+            self.print_prefinal() # FUNCION DE IMPRESION SIN SAMU
 
             if parser.result(): f_answ = executor.submit(self.final_answer) if not self.no_in_question else executor.submit(self.no_final_answer)
             else: 
                 print('NO ANSWERS ANYWHERE :(')
-                panswers_exe.result()
                 return
-            panswers_exe.result()
             f_answ.result()
-        #self.print_final() # FUNCION DE IMPRESION SIN SAMU
+        self.print_final() # FUNCION DE IMPRESION SIN SAMU
         print("FINISH:", round(time.time()-s, 3),end="\n\n")
         return
 
@@ -250,8 +250,8 @@ class Willy:
         aux.sort(reverse= (not self.no_in_question))
         del probably_final_answers[:]
         for i in range(3): probably_final_answers.append(aux[i][1])
+        #print(aux)
         self.FINAL_ANSWER = probably_final_answers[0]
-        #print("ID WILLY: ", id(probably_final_answers))
 
     def ident_answer_from_sentenence(self, sentence):
         # ANSWER DENSITY
@@ -259,7 +259,7 @@ class Willy:
         for i in range(3):
             for word in self.token_answers[i]: self.final_answ_score[i] += sentence.count(word)
             self.final_answ_score[i] /= len(self.token_answers[i])
-        self.edit_possible_final_answers()
+        #self.edit_possible_final_answers()
         
         # ANSWER WORDS CLOSE TO QUESTION WORDS
         answers_score2 = [0,0,0]
@@ -280,11 +280,12 @@ class Willy:
                 for a_index in answer_index: count += abs(q_index - a_index)
                 count /= len(answer_index)
                 answers_score2[i] += count
-            if len(question_words_index) == 0: continue
+            if len(question_words_index) == 0 or len(answer_index) == 0: answers_score2[i] = len(sentence)
             answers_score2[i] /= len(question_words_index)
 
-        self.final_answ_score = [self.final_answ_score[i] * answers_score2[i] for i in range(3)]
-        self.edit_possible_final_answers()
+
+        self.final_answ_score = [(self.final_answ_score[i] * 100) / answers_score2[i] for i in range(3)]
+        #self.edit_possible_final_answers()
 
         # MOST REPEATED ANSWER IN ALL DATA
         answers_score2 = [0,0,0]

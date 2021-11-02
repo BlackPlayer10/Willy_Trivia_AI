@@ -5,11 +5,11 @@ trash_words = corpus.stopwords.words('spanish') + ["-"]
 del trash_words[163] # estados
 
 def replace_sign(letter):
-    if letter == "á": return "a"
-    if letter == "é": return "e"
-    if letter == "í": return "i"
-    if letter == "ó": return "o"
-    if letter in "úü": return "u"
+    if letter in "áà": return "a"
+    if letter in "éè": return "e"
+    if letter in "íì": return "i"
+    if letter in "óò": return "o"
+    if letter in "úùü": return "u"
     return letter
 
 def search_no_question(sentence): # By reference
@@ -34,4 +34,8 @@ def token_string(sentence): # By reference
     last_str = [word for word in new_str if word not in trash_words]
     return last_str
 
-
+def procces_google_query(sentence):
+    query = ""
+    for letter in sentence:
+        if letter not in trash_terms: query += letter
+    return query
