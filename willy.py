@@ -6,21 +6,17 @@ from bs4 import BeautifulSoup
 import requests
 import concurrent.futures
 from math import log
+from art import tprint
 import time
+import os
 
 class Willy:
     def __init__(self):
 
-        self.api_key = "AIzaSyCrh3D_meNlogQJ5IqpSVsYT7GSS8OhvGk"
-        self.cse_id = "fb488b1769fda2748"
-
-        '''
-        # Load keys
-        keys = open(r"modules\keys.txt", "r")
+        keys = open(r"C:\Users\Usuario\Documents\Proyects 2021\Willy Proyect\modules\keys.txt", "r")
         self.api_key = keys.readline()[:-1]
         self.cse_id = keys.readline()
         keys.close()
-        '''
 
         self.no_in_question = False
         self.brute_question = None
@@ -40,10 +36,6 @@ class Willy:
         self.preliminary_scores = [] # Lista de listas de los score de googl_search, doc_name y snipper
         self.sentence_tf_idf_score = []
         self.final_answ_score = [] # Scores de respuestas
-        self.FINAL_ANSWER = None
-
-        # probably_answers (GLOBAL) lista con las respuestas en orden
-        # probably_final_answers (GLOBAL) lista con las respuestas en orden
 
     def reset(self):
         global probably_answers 
@@ -132,7 +124,6 @@ class Willy:
         else:
             if general_score[0][0] == general_score[1][0] == general_score[2][0]: return
             for i in range(3): probably_answers.append(general_score[i][1])
-        #print("PROBABLY PRELIMINARY ANSWERS SCORE:", general_score)
         return
     
     def tf_idf_score(self):
@@ -213,18 +204,12 @@ class Willy:
             self.token_question = tq.result()
             self.token_answers = [exe.result() for exe in ta]
             for answ in self.token_answers: self.answer_key_words += [word for word in answ if word not in self.answer_key_words]
-            #print(self.token_question)
-            #print(self.token_answers)
 
         # GOOGLE SEARCH
         var = self.google_search()
         if var == 0:
             print("No Google Results D:")
             return 
-        #print("DOCNAME:",self.doc_name)
-        #print("TITULOS:",self.search_titles)
-        #print("SNIPPETS:",self.search_snippets)
-
 
         # Check answer in search, snippet, doc name and start final answer
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -241,26 +226,19 @@ class Willy:
             f_answ.result()
         self.print_final() # FUNCION DE IMPRESION SIN SAMU
         print("FINISH:", round(time.time()-s, 3),end="\n\n")
+        time.sleep(5)
         return
 
     # FUNCIONES PARA IDENTIFICACION DE RESPUESTA
-    def edit_possible_final_answers(self):
-        global probably_final_answers
-        aux = [[self.final_answ_score[i], chr(i+65)] for i in range(len(self.final_answ_score))]
-        aux.sort(reverse= (not self.no_in_question))
-        del probably_final_answers[:]
-        for i in range(3): probably_final_answers.append(aux[i][1])
-        #print(aux)
-        self.FINAL_ANSWER = probably_final_answers[0]
 
     def ident_answer_from_sentenence(self, sentence):
+        global probably_final_answers
         # ANSWER DENSITY
         self.final_answ_score = [0,0,0]
         for i in range(3):
             for word in self.token_answers[i]: self.final_answ_score[i] += sentence.count(word)
             self.final_answ_score[i] /= len(self.token_answers[i])
-        #self.edit_possible_final_answers()
-        
+
         # ANSWER WORDS CLOSE TO QUESTION WORDS
         answers_score2 = [0,0,0]
         question_words_index = []
@@ -285,7 +263,6 @@ class Willy:
 
 
         self.final_answ_score = [(self.final_answ_score[i] * 100) / answers_score2[i] for i in range(3)]
-        #self.edit_possible_final_answers()
 
         # MOST REPEATED ANSWER IN ALL DATA
         answers_score2 = [0,0,0]
@@ -296,22 +273,26 @@ class Willy:
                 answers_score2[i] +=  count / len(sent)
 
         self.final_answ_score = [self.final_answ_score[i] + answers_score2[i] for i in range(3)]
-        self.edit_possible_final_answers()
+        
+        aux = [[self.final_answ_score[i], chr(i+65)] for i in range(len(self.final_answ_score))]
+        aux.sort(reverse= (not self.no_in_question))
+        del probably_final_answers[:]
+        for i in range(3): probably_final_answers.append(aux[i][1])
 
 
     # FUNCIONES SOLO PARA USAR A WILLY SIN SAMU E IMPRIMIR RESPUESTAS
     def print_prefinal(self):
-        if len(probably_answers) == 0: return
-        print("\nPRE ANSWERS: ",end="")
-        print("\t---> ",end="")
+        if len(probably_answers) == 0 or len(probably_answers) == 3: return
+        print("\nPRE ANSWERS: ")
+        string = ""
         for i in range(len(probably_answers)):
-            print(probably_answers[i],end="")
-            if i != len(probably_answers)-1: print(" / ",end="")
-        print(" <---")
+            string += probably_answers[i]
+            if i != len(probably_answers)-1: string += " / "
+        tprint(string)
     
     def print_final(self):
-        global probably_final_answers
-        print("\nFINAL ANSWER: \t--->", probably_final_answers[0], "<---")
+        print("\nFINAL ANSWER: ")
+        tprint(probably_final_answers[0])
         print("\nSECOND OPINION:")
         print(probably_final_answers[1],"-", probably_final_answers[2])
         print()
