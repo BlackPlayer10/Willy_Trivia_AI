@@ -7,7 +7,7 @@ import os
 import concurrent.futures
 import time
 
-MAX_QLINES = 4
+MAX_QLINES = 4 # MAX number of lines that a question can have. If are more... F Willy
 
 FIRST_COORDS = 574 # Y-coord of the upper-left corner of the question box
 LINE_HEIGHT = 48 # Height of each question line
@@ -69,12 +69,37 @@ def calc_touch_answers(id, key):
             if future_q[i].result() == '':
                 lines = i+1
                 break
-    print(lines)
-    return [((coords[key]["LINE_HEIGHT"]+1)*lines + coords[key]["DISTANCE_QA"] + coords[key]["DISTANCE_AA"]*i + (coords[key]["ANSWER_HEIGHT"]//2),(coords[key]["WIDTH"][0] + coords[key]["WIDTH"][1]) // 2) for i in range(3)]
+    #print(lines)
+    return [(coords[key]["FIRST_COORDS"]+(coords[key]["LINE_HEIGHT"]+1)*lines + coords[key]["DISTANCE_QA"] + coords[key]["DISTANCE_AA"]*i + (coords[key]["ANSWER_HEIGHT"]//2),(coords[key]["WIDTH"][0] + coords[key]["WIDTH"][1]) // 2) for i in range(3)]
     
 def touch_screen(id, coords):
-    subprocess.call("adb shell -s "+str(id)+" shell input tap "+str(coords[0])+" "+str(coords[1]),shell=True)
+    s = time.time()
+    subprocess.call("adb -s "+str(id)+" shell input tap "+str(coords[0])+" "+str(coords[1]),shell=True)
+    print(round(time.time() - s, 3))
     
+
+def adbshell(command, serial=None, adbpath='adb'):
+    args = [adbpath]
+    if serial is not None:
+        args.append('-s')
+        args.append(serial)
+    args.append('shell')
+    args.append(command)
+    return os.linesep.join(subprocess.check_output(args).split('\r\n')[0:-1])
+
+def adbdevices(adbpath='adb'):
+    return [dev.split('\t')[0] for dev in subprocess.check_output([adbpath, 'devices']).splitlines() if dev.endswith('\tdevice')]
+
+def touchscreen_devices(serial=None, adbpath='adb'):
+    return [dev.splitlines()[0].split()[-1] for dev in adbshell('getevent -il', serial, adbpath).split('add device ') if dev.find('ABS_MT_POSITION_X') > -1]
+
+def tap(devicename, x, y, serial=None, adbpath='adb'):
+    adbshell('S="sendevent {}";$S 3 57 0;$S 3 53 {};$S 3 54 {};$S 3 58 50;$S 3 50 5;$S 0 2 0;$S 0 0 0;'.format(devicename, x, y), serial, adbpath)
+    adbshell('S="sendevent {}";$S 3 57 -1;$S 0 2 0;$S 0 0 0;'.format(devicename), serial, adbpath)
+    serial = adbdevices()[0]
+    touchdev = touchscreen_devices(serial)[0]
+    #tap(touchdev, 100, 100, serial)
+
 
 #lines = int(input("How many lines: "))
 #start_time = time.time()
