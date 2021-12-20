@@ -258,9 +258,10 @@ class Willy:
                 count /= len(answer_index)
                 answers_score2[i] += count
             if len(question_words_index) == 0 or len(answer_index) == 0: answers_score2[i] = len(sentence)
-            answers_score2[i] /= len(question_words_index)
+            else: answers_score2[i] /= len(question_words_index) # division por zero
 
-
+        for i in range(3): # Div by zero because question word == answer word (Proximidad == 0)
+            if answers_score2[i] == 0: answers_score2[i] = 1
         self.final_answ_score = [(self.final_answ_score[i] * 100) / answers_score2[i] for i in range(3)]
 
         # MOST REPEATED ANSWER IN ALL DATA

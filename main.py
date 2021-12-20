@@ -1,12 +1,12 @@
-from samu import Samu
+#from samu import Samu
 from willy import Willy
-import concurrent.futures
+#import concurrent.futures
 
 def main():
 
     
     WILLY = Willy()
-    SAMU = Samu()
+    #SAMU = Samu()
 
     while True:
         print("\n\t\t *** WILLY 1.0 *** \n")
